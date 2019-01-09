@@ -3,5 +3,5 @@
 ## keys
 
 * L:move to right
-* R:move to left
+* H:move to left
 * Z:spit out rock
