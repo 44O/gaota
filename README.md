@@ -6,6 +6,10 @@
 * H:move to left
 * Z:spit out rock
 
+## Demo
+
+![pyxel-190111-165419](https://user-images.githubusercontent.com/46480858/51020931-5deb0480-15c3-11e9-8fa5-b11b6f412c75.gif)
+
 ## Something like a poem
 
 When I was a primary school student, I was an MSX user and I was constantly programming. At that time was at the PC boom, me and my friends were often wrote a programs and showed each other.
