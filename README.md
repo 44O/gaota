@@ -4,6 +4,8 @@
 
 * L:move to right
 * H:move to left
+* K:climb the ladder
+* J:
 * Z:spit out rock
 
 ## Demo
