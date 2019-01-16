@@ -25,6 +25,9 @@ IMG_TRASURE_UPPER_LEFT = 6
 IMG_TRASURE_UPPER_RIGHT = 7
 IMG_TRASURE_LOWER_LEFT = 38
 IMG_TRASURE_LOWER_LEFT = 39
+IMG_LADDER_LEFT = 4
+IMG_LADDER_RIGHT = 5
+ 
 
 # TODO:Classing, OVERALL!!!!!!
 class App:
@@ -47,6 +50,7 @@ class App:
         self.direction_x = 2
         self.direction_y = 0
         self.walk = [0, 16]
+        self.laddering = [80, 96]
         self.direction = [16, -16]
         self.vector = 0
         self.rock_x = 0
@@ -57,6 +61,7 @@ class App:
         self.spew_count = 0
         self.spew = [0, 16, 32, 48]
         self.rock_count = 0
+        self.is_laddering = False
 
     def deep_reset(self):
         self.stage = 0
@@ -85,6 +90,7 @@ class App:
             self.move_x = 0
             self.move_y = 0
             self.direction_y = 0
+            self.is_laddering = False
 
             # fall if no wall under gaota
             if self.is_nothing_at_my_feet():
@@ -105,18 +111,16 @@ class App:
                 self.direction_x = -1
                 self.move_x = -1
                 self.vector = 1
-                # TODO:The functionalization is kinda odd..
-                obj_upper, obj_below = self.object_of_front()
                 if (
-                        obj_upper in [
-                            IMG_WALL, 
-                            IMG_ROCK_UPPER_RIGHT, 
-                            IMG_ROCK_LOWER_RIGHT
-                        ] or 
-                        obj_below in [
-                            IMG_WALL, 
-                            IMG_ROCK_UPPER_RIGHT, 
-                            IMG_ROCK_LOWER_RIGHT
+                        self.target(self.tile_x-1, self.tile_y) in [
+                            IMG_WALL,
+                            IMG_ROCK_UPPER_RIGHT,
+                            IMG_ROCK_UPPER_LEFT
+                        ] or
+                        self.target(self.tile_x-1, self.tile_y+1) in [
+                            IMG_WALL,
+                            IMG_ROCK_UPPER_RIGHT,
+                            IMG_ROCK_UPPER_LEFT
                         ]):
                     self.move_x = 0 
 
@@ -125,20 +129,50 @@ class App:
                 self.direction_x = 2
                 self.move_x = 1
                 self.vector = 0
-                # TODO:Here too.
-                obj_upper, obj_below = self.object_of_front()
                 if ( 
-                        obj_upper in [
+                        self.target(self.tile_x+2, self.tile_y) in [
                             IMG_WALL, 
                             IMG_ROCK_UPPER_LEFT, 
                             IMG_ROCK_LOWER_LEFT
                         ] or 
-                        obj_below in [
+                        self.target(self.tile_x+2, self.tile_y+1) in [
                             IMG_WALL, 
                             IMG_ROCK_UPPER_LEFT, 
                             IMG_ROCK_LOWER_LEFT
                         ]):
                     self.move_x = 0
+
+            # push k to move up
+            elif pyxel.btn(pyxel.KEY_K):
+                self.direction_y = -1
+                self.move_y = 0
+                if ( 
+                        self.target(self.tile_x+0, self.tile_y+1) in [
+                            IMG_LADDER_RIGHT,
+                            IMG_LADDER_LEFT
+                        ] and 
+                        self.target(self.tile_x+1, self.tile_y+1) in [
+                            IMG_LADDER_RIGHT,
+                            IMG_LADDER_LEFT
+                        ]):
+                    self.move_y = -1
+                    self.is_laddering = True
+
+            # push j to move down
+            elif pyxel.btn(pyxel.KEY_J):
+                self.direction_y = 1
+                self.move_y = 0
+                if ( 
+                        self.target(self.tile_x+0, self.tile_y+2) in [
+                            IMG_LADDER_RIGHT,
+                            IMG_LADDER_LEFT
+                        ] and 
+                        self.target(self.tile_x+1, self.tile_y+2) in [
+                            IMG_LADDER_RIGHT,
+                            IMG_LADDER_LEFT
+                        ]):
+                    self.move_y = 1
+                    self.is_laddering = True
 
             # push z to spew a rock
             elif pyxel.btn(pyxel.KEY_Z):
@@ -148,7 +182,7 @@ class App:
                     pass
                 else:
                     if self.is_puttable():
-                        self.rock_tile_x = self.tile_x + self.direction_x if self.vector == 0 else self.tile_x + self.direction_x - 1
+                        self.rock_tile_x = self.tile_x + 2 if self.vector == 0 else self.tile_x - 2
                         self.rock_tile_y = self.tile_y
                         self.rock_x = (self.rock_tile_x - (self.stage * 16)) * 8
                         self.rock_y = self.rock_tile_y * 8
@@ -166,11 +200,12 @@ class App:
         self.tile_y = 0 if self.y == 0 else int(self.y / 8)
 
         # got something?(shoot, gaota cannot get anything at the air.)
-        if self.object_of_behind() == IMG_ONIGIRI_UPPER_LEFT and not(self.is_nothing_at_my_feet()):
+        got = self.target(self.tile_x+0, self.tile_y+0)
+        if got == IMG_ONIGIRI_UPPER_LEFT and not(self.is_nothing_at_my_feet()):
             self.rock_count += 1
             self.update_rock_count()
             self.delete_behind()
-        elif self.object_of_behind() == IMG_TRASURE_UPPER_LEFT and not(self.is_nothing_at_my_feet()):
+        elif got == IMG_TRASURE_UPPER_LEFT and not(self.is_nothing_at_my_feet()):
             # TODO: need much more rich stage clear process
             self.stage += 1
             self.reset()
@@ -203,18 +238,21 @@ class App:
             j += 1
             i -= 1
 
+    def target(self, x, y):
+        return pyxel.tilemap(0).get(x, y)
+
     def is_puttable(self):
         # TODO:this is too ugly...
         if self.vector == 0:
-            obj_upper_left = pyxel.tilemap(0).get(self.tile_x+2, self.tile_y)
-            obj_upper_right = pyxel.tilemap(0).get(self.tile_x+3, self.tile_y)
-            obj_lower_left = pyxel.tilemap(0).get(self.tile_x+2, self.tile_y+1)
-            obj_lower_right = pyxel.tilemap(0).get(self.tile_x+3, self.tile_y+1)
+            obj_upper_left = self.target(self.tile_x+2, self.tile_y+0)
+            obj_upper_right = self.target(self.tile_x+3, self.tile_y+0)
+            obj_lower_left = self.target(self.tile_x+2, self.tile_y+1)
+            obj_lower_right = self.target(self.tile_x+3, self.tile_y+1)
         else:
-            obj_upper_left = pyxel.tilemap(0).get(self.tile_x-2, self.tile_y)
-            obj_upper_right = pyxel.tilemap(0).get(self.tile_x-1, self.tile_y)
-            obj_lower_left = pyxel.tilemap(0).get(self.tile_x-2, self.tile_y+1)
-            obj_lower_right = pyxel.tilemap(0).get(self.tile_x-1, self.tile_y+1)
+            obj_upper_left = self.target(self.tile_x+-2, self.tile_y+0)
+            obj_upper_right = self.target(self.tile_x-1, self.tile_y+0)
+            obj_lower_left = self.target(self.tile_x-2, self.tile_y+1)
+            obj_lower_right = self.target(self.tile_x+-1, self.tile_y+1)
 
         if IMG_WALL not in [obj_upper_left, obj_upper_right, obj_lower_right, obj_lower_left]:
             return True
@@ -242,65 +280,30 @@ class App:
         # set rock location on the tile.
         self.rock_tile_y = 0 if self.rock_y == 0 else int(self.rock_y / 8)
 
-    def object_of_front(self):
-        obj_upper = pyxel.tilemap(0).get(
-            self.tile_x + self.direction_x, 
-            self.tile_y + self.direction_y)
-        obj_below = pyxel.tilemap(0).get(
-            self.tile_x + self.direction_x, 
-            self.tile_y + self.direction_y + 1)
-        print(obj_upper, obj_below)
-        return obj_upper, obj_below
-
-    def object_of_below(self):
-        obj_left = pyxel.tilemap(0).get(
-                self.tile_x,
-                self.tile_y + 2)
-        obj_right = pyxel.tilemap(0).get(
-                self.tile_x + 1,
-                self.tile_y + 2)
-        return obj_left, obj_right
-
-    def object_of_behind(self):
-        obj_behind = pyxel.tilemap(0).get(
-                self.tile_x,
-                self.tile_y)
-        return obj_behind
-
     def is_nothing_at_my_feet(self):
-        obj_left_feet = pyxel.tilemap(0).get(
-                self.tile_x,
-                self.tile_y + 2)
-        obj_right_feet = pyxel.tilemap(0).get(
-                self.tile_x + 1,
-                self.tile_y + 2)
-
-        if obj_left_feet in [
+        if self.target(self.tile_x, self.tile_y+2) in [
                 IMG_WALL, 
                 IMG_ROCK_UPPER_LEFT, 
-                IMG_ROCK_UPPER_RIGHT]:
+                IMG_ROCK_UPPER_RIGHT,
+                IMG_LADDER_LEFT,
+                IMG_LADDER_RIGHT]:
             return False
-        if obj_right_feet in [
+        if self.target(self.tile_x+1, self.tile_y+2) in [
                 IMG_WALL, 
                 IMG_ROCK_UPPER_LEFT, 
-                IMG_ROCK_UPPER_RIGHT]:
+                IMG_ROCK_UPPER_RIGHT,
+                IMG_LADDER_LEFT,
+                IMG_LADDER_RIGHT]:
             return False
         return True
 
     def is_nothing_at_my_bottom(self):
-        obj_left_bottom = pyxel.tilemap(0).get(
-                self.rock_tile_x,
-                self.rock_tile_y + 2)
-        obj_right_bottom = pyxel.tilemap(0).get(
-                self.rock_tile_x + 1,
-                self.rock_tile_y + 2)
-
-        if obj_left_bottom in [
+        if self.target(self.rock_tile_x, self.rock_tile_y+2) in [
                 IMG_WALL, 
                 IMG_ROCK_UPPER_LEFT, 
                 IMG_ROCK_UPPER_RIGHT]:
             return False
-        if obj_right_bottom in [
+        if self.target(self.rock_tile_x+1, self.rock_tile_y+2) in [
                 IMG_WALL, 
                 IMG_ROCK_UPPER_LEFT, 
                 IMG_ROCK_UPPER_RIGHT]:
@@ -318,7 +321,12 @@ class App:
         x = self.x
         y = self.y
         img = 0
-        u = self.spew[self.spew_count] if self.is_spewing else self.walk[self.x % 2]
+        if self.is_spewing:
+            u = self.spew[self.spew_count]
+        elif self.is_laddering:
+            u = self.laddering[self.y % 2]
+        else:
+            u = self.walk[self.x % 2]
         v = 16
         w = self.direction[self.vector]
         h = 16
