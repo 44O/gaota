@@ -46,8 +46,6 @@ class App:
         self.tile_y = 0
         self.move_x = 0
         self.move_y = 0
-        self.direction_x = 2
-        self.direction_y = 0
         self.walk = [0, 16]
         self.laddering = [80, 96]
         self.direction = [16, -16]
@@ -88,13 +86,11 @@ class App:
         if self.x % 8 == 0 and self.y % 8 == 0:
             self.move_x = 0
             self.move_y = 0
-            self.direction_y = 0
             self.is_laddering = False
 
             # fall if no wall under gaota
             if self.is_nothing_at_my_feet():
                 self.move_y = 1
-                self.direction_y = 1
             
             # for spewing animations
             elif self.is_spewing:
@@ -107,7 +103,6 @@ class App:
     
             # push h to move to left
             elif pyxel.btn(pyxel.KEY_H) and self.x>0:
-                self.direction_x = -1
                 self.move_x = -1
                 self.vector = 1
                 if (
@@ -125,7 +120,6 @@ class App:
 
             # push l to move to right
             elif pyxel.btn(pyxel.KEY_L) and self.x<112:
-                self.direction_x = 2
                 self.move_x = 1
                 self.vector = 0
                 if ( 
@@ -143,7 +137,6 @@ class App:
 
             # push k to move up
             elif pyxel.btn(pyxel.KEY_K):
-                self.direction_y = -1
                 self.move_y = 0
                 if ( 
                         self.target(self.tile_x+0, self.tile_y+1) in [
@@ -159,7 +152,6 @@ class App:
 
             # push j to move down
             elif pyxel.btn(pyxel.KEY_J):
-                self.direction_y = 1
                 self.move_y = 0
                 if ( 
                         self.target(self.tile_x+0, self.tile_y+2) in [
@@ -241,21 +233,28 @@ class App:
         return pyxel.tilemap(0).get(x, y)
 
     def is_puttable(self):
-        # TODO:this is too ugly...
         if self.vector == 0:
-            obj_upper_left = self.target(self.tile_x+2, self.tile_y+0)
-            obj_upper_right = self.target(self.tile_x+3, self.tile_y+0)
+            obj_upper_left = self.target(self.tile_x+2, self.tile_y)
+            obj_upper_right = self.target(self.tile_x+3, self.tile_y)
             obj_lower_left = self.target(self.tile_x+2, self.tile_y+1)
             obj_lower_right = self.target(self.tile_x+3, self.tile_y+1)
         else:
-            obj_upper_left = self.target(self.tile_x+-2, self.tile_y+0)
-            obj_upper_right = self.target(self.tile_x-1, self.tile_y+0)
+            obj_upper_left = self.target(self.tile_x-2, self.tile_y)
+            obj_upper_right = self.target(self.tile_x-1, self.tile_y)
             obj_lower_left = self.target(self.tile_x-2, self.tile_y+1)
-            obj_lower_right = self.target(self.tile_x+-1, self.tile_y+1)
+            obj_lower_right = self.target(self.tile_x-1, self.tile_y+1)
 
-        if IMG_WALL not in [obj_upper_left, obj_upper_right, obj_lower_right, obj_lower_left]:
-            return True
-        return False
+        return  set([
+                    IMG_WALL, 
+                    IMG_ROCK_UPPER_LEFT, 
+                    IMG_ROCK_UPPER_RIGHT, 
+                    IMG_ROCK_LOWER_LEFT, IMG_ROCK_LOWER_RIGHT
+                ]).isdisjoint([
+                    obj_upper_left, 
+                    obj_upper_right, 
+                    obj_lower_right, 
+                    obj_lower_left
+                ])
 
     def update_rock(self):
         if self.rock_y % 8 == 0:
