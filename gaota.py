@@ -322,9 +322,9 @@ class App:
         if self.is_spewing:
             u = self.spew[self.spew_count]
         elif self.is_laddering:
-            u = self.laddering[self.y % 2]
+            u = self.laddering[(self.y // 4) % 2]
         else:
-            u = self.walk[self.x % 2]
+            u = self.walk[(self.x // 4) % 2]
         v = 16
         w = self.direction[self.vector]
         h = 16
